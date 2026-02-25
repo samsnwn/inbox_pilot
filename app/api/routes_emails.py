@@ -11,7 +11,7 @@ from rq import Queue
 from app.core.config import settings
 from app.workers.tasks import process_email_task
 
-router = APIRouter(prefix="/emails", tags=["emails"])  # <-- THIS MUST BE TOP LEVEL
+router = APIRouter(prefix="/emails", tags=["emails"])
 
 @router.post("/ingest")
 def ingest_email(payload: EmailIngest, db: Session = Depends(get_db)):
@@ -46,6 +46,13 @@ def ingest_email(payload: EmailIngest, db: Session = Depends(get_db)):
         )
         job_id = enqueue_processing(existing.id)
         return {"email_id": existing.id, "idempotent": True, "job_id": job_id}
+
+def enqueue_processing(email_id: str) -> str:
+    redis_conn = redis.from_url(settings.redis_url)
+    q = Queue("default", connection=redis_conn)
+    job = q.enqueue(process_email_task, email_id, job_timeout=120)
+    return job.id
+
 
 @router.get("", response_model=list[EmailOut])
 def list_emails(db: Session = Depends(get_db)):
@@ -87,9 +94,3 @@ def reprocess_email(email_id: str, db: Session = Depends(get_db)):
     e = db.query(Email).filter(Email.id == email_id).one()
     job_id = enqueue_processing(e.id)
     return {"email_id": e.id, "job_id": job_id}
-
-def enqueue_processing(email_id: str) -> str:
-    redis_conn = redis.from_url(settings.redis_url)
-    q = Queue("default", connection=redis_conn)
-    job = q.enqueue(process_email_task, email_id, job_timeout=120)
-    return job.id
