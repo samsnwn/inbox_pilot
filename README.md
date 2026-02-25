@@ -120,26 +120,6 @@ POST /emails
 
 ---
 
-# 🗄 Database Design (Simplified)
-
-## `emails` table
-
-| Column | Description |
-|--------|-------------|
-| id | Internal UUID |
-| provider | Email provider (simulator, gmail) |
-| provider_message_id | External ID (UNIQUE) |
-| thread_id | Conversation thread |
-| from_addr | Sender |
-| to_addr | Recipient |
-| subject | Email subject |
-| body_text | Email content |
-| received_at | Timestamp |
-| status | RECEIVED / PROCESSING / COMPLETED / FAILED |
-| classification | AI classification |
-| draft_reply | Generated response |
-
----
 
 # 🔄 Email Lifecycle
 
@@ -194,16 +174,3 @@ alembic heads
 - Observability (metrics + tracing)
 
 ---
-
-# 🧠 Why This Project Matters
-
-Inbox Pilot is not just an AI demo.
-
-It demonstrates:
-- Real-world backend architecture
-- Async job processing
-- Database migration discipline
-- AI integration with RAG
-- Idempotent system design
-
-This is the foundation of modern AI-powered SaaS systems.
