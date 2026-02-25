@@ -5,5 +5,6 @@ class Settings(BaseSettings):
 
     app_env: str = "local"
     database_url: str
+    redis_url: str
 
 settings = Settings()

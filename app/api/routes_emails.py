@@ -6,8 +6,12 @@ from app.core.db import get_db
 from app.models.email import Email
 from app.schemas.email import EmailIngest, EmailOut
 
-router = APIRouter(prefix="/emails", tags=["emails"])  # <-- THIS MUST BE TOP LEVEL
+import redis
+from rq import Queue
+from app.core.config import settings
+from app.workers.tasks import process_email_task
 
+router = APIRouter(prefix="/emails", tags=["emails"])  # <-- THIS MUST BE TOP LEVEL
 
 @router.post("/ingest")
 def ingest_email(payload: EmailIngest, db: Session = Depends(get_db)):
@@ -28,7 +32,8 @@ def ingest_email(payload: EmailIngest, db: Session = Depends(get_db)):
     try:
         db.commit()
         db.refresh(email)
-        return {"email_id": email.id, "idempotent": False}
+        job_id = enqueue_processing(email.id)
+        return {"email_id": email.id, "idempotent": False, "job_id": job_id}
     except IntegrityError:
         db.rollback()
         existing = (
@@ -39,7 +44,8 @@ def ingest_email(payload: EmailIngest, db: Session = Depends(get_db)):
             )
             .one()
         )
-        return {"email_id": existing.id, "idempotent": True}
+        job_id = enqueue_processing(existing.id)
+        return {"email_id": existing.id, "idempotent": True, "job_id": job_id}
 
 @router.get("", response_model=list[EmailOut])
 def list_emails(db: Session = Depends(get_db)):
@@ -75,3 +81,15 @@ def get_email(email_id: str, db: Session = Depends(get_db)):
         received_at=e.received_at,
         status=e.status,
     )
+
+@router.post("/{email_id}/reprocess")
+def reprocess_email(email_id: str, db: Session = Depends(get_db)):
+    e = db.query(Email).filter(Email.id == email_id).one()
+    job_id = enqueue_processing(e.id)
+    return {"email_id": e.id, "job_id": job_id}
+
+def enqueue_processing(email_id: str) -> str:
+    redis_conn = redis.from_url(settings.redis_url)
+    q = Queue("default", connection=redis_conn)
+    job = q.enqueue(process_email_task, email_id, job_timeout=120)
+    return job.id
