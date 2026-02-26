@@ -4,7 +4,9 @@ from sqlalchemy.exc import IntegrityError
 
 from app.core.db import get_db
 from app.models.email import Email
-from app.schemas.email import EmailIngest, EmailOut
+from app.schemas.email import EmailIngest, EmailOut, EmailDetailOut, EmailAnalysisOut
+from app.models.analysis import EmailAnalysis
+
 
 import redis
 from rq import Queue
@@ -72,10 +74,27 @@ def list_emails(db: Session = Depends(get_db)):
         for e in emails
     ]
 
-@router.get("/{email_id}", response_model=EmailOut)
+@router.get("/{email_id}", response_model=EmailDetailOut)
 def get_email(email_id: str, db: Session = Depends(get_db)):
     e = db.query(Email).filter(Email.id == email_id).one()
-    return EmailOut(
+
+    a = (
+        db.query(EmailAnalysis)
+        .filter(EmailAnalysis.email_id == e.id)
+        .one_or_none()
+    )
+
+    analysis_out = None
+    if a is not None:
+        analysis_out = EmailAnalysisOut(
+            category=a.category,
+            priority=a.priority,
+            entities=a.entities,
+            confidence=a.confidence,
+            model_version=a.model_version,
+        )
+
+    return EmailDetailOut(
         id=e.id,
         provider=e.provider,
         provider_message_id=e.provider_message_id,
@@ -86,6 +105,7 @@ def get_email(email_id: str, db: Session = Depends(get_db)):
         body_text=e.body_text,
         received_at=e.received_at,
         status=e.status,
+        analysis=analysis_out,
     )
 
 @router.post("/{email_id}/reprocess")

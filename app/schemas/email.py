@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
+from typing import Any
 
 class EmailIngest(BaseModel):
     provider: str = "simulator"
@@ -22,3 +23,13 @@ class EmailOut(BaseModel):
     body_text: str
     received_at: datetime | None
     status: str
+
+class EmailAnalysisOut(BaseModel):
+    category: str
+    priority: str
+    entities: dict[str, Any]
+    confidence: float
+    model_version: str
+
+class EmailDetailOut(EmailOut):
+    analysis: EmailAnalysisOut | None = None

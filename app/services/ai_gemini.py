@@ -30,7 +30,6 @@ def analyze_email_gemini(subject: str, body: str) -> AnalysisOut:
 
     client = genai.Client(api_key=settings.gemini_api_key)
 
-    # IMPORTANT: use types.Schema, and DO NOT use additionalProperties
     response_schema = types.Schema(
         type=types.Type.OBJECT,
         required=["category", "priority", "entities", "confidence", "model_version"],
