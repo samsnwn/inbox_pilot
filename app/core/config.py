@@ -6,5 +6,8 @@ class Settings(BaseSettings):
     app_env: str = "local"
     database_url: str
     redis_url: str
+    gemini_api_key: str | None = None
+    ai_model: str = "gemini-2.5-flash"
+    ai_provider: str = "stub"
 
 settings = Settings()

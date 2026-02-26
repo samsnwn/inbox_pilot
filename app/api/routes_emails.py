@@ -13,6 +13,12 @@ from app.workers.tasks import process_email_task
 
 router = APIRouter(prefix="/emails", tags=["emails"])
 
+def enqueue_processing(email_id: str) -> str:
+    redis_conn = redis.from_url(settings.redis_url)
+    q = Queue("default", connection=redis_conn)
+    job = q.enqueue(process_email_task, email_id, job_timeout=120)
+    return job.id
+
 @router.post("/ingest")
 def ingest_email(payload: EmailIngest, db: Session = Depends(get_db)):
     email = Email(
@@ -46,13 +52,6 @@ def ingest_email(payload: EmailIngest, db: Session = Depends(get_db)):
         )
         job_id = enqueue_processing(existing.id)
         return {"email_id": existing.id, "idempotent": True, "job_id": job_id}
-
-def enqueue_processing(email_id: str) -> str:
-    redis_conn = redis.from_url(settings.redis_url)
-    q = Queue("default", connection=redis_conn)
-    job = q.enqueue(process_email_task, email_id, job_timeout=120)
-    return job.id
-
 
 @router.get("", response_model=list[EmailOut])
 def list_emails(db: Session = Depends(get_db)):
