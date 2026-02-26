@@ -24,3 +24,5 @@ class Email(Base):
 
     received_at: Mapped[str] = mapped_column(DateTime(timezone=True), server_default=func.now())
     status: Mapped[str] = mapped_column(Enum(*EMAIL_STATUS, name="email_status"), default="new")
+
+    processing_error: Mapped[str | None] = mapped_column(Text, nullable=True)

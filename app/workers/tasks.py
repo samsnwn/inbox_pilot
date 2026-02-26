@@ -34,12 +34,14 @@ def process_email_task(email_id: str) -> None:
             analysis.model_version = result.model_version
 
         email.status = "done"
+        email.processing_error = None
         db.commit()
 
     except Exception:
         email = db.query(Email).filter(Email.id == email_id).one_or_none()
         if email:
             email.status = "failed"
+            email.processing_error = str(e)[:2000]
             db.commit()
         raise
     finally:

@@ -7,7 +7,6 @@ from app.models.email import Email
 from app.schemas.email import EmailIngest, EmailOut, EmailDetailOut, EmailAnalysisOut
 from app.models.analysis import EmailAnalysis
 
-
 import redis
 from rq import Queue
 from app.core.config import settings
