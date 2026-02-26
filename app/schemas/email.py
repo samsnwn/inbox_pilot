@@ -23,6 +23,7 @@ class EmailOut(BaseModel):
     body_text: str
     received_at: datetime | None
     status: str
+    processing_error: str | None = None
 
 class EmailAnalysisOut(BaseModel):
     category: str
@@ -33,3 +34,12 @@ class EmailAnalysisOut(BaseModel):
 
 class EmailDetailOut(EmailOut):
     analysis: EmailAnalysisOut | None = None
+
+class DraftOut(BaseModel):
+    body_text: str
+    model_version: str | None = None
+
+class EmailDetailOut(EmailOut):
+    processing_error: str | None = None
+    analysis: EmailAnalysisOut | None = None
+    draft: DraftOut | None = None

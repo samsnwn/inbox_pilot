@@ -12,6 +12,9 @@ from rq import Queue
 from app.core.config import settings
 from app.workers.tasks import process_email_task
 
+from app.models.draft import DraftReply
+from app.schemas.email import DraftOut
+
 router = APIRouter(prefix="/emails", tags=["emails"])
 
 def enqueue_processing(email_id: str) -> str:
@@ -93,6 +96,19 @@ def get_email(email_id: str, db: Session = Depends(get_db)):
             model_version=a.model_version,
         )
 
+    d = (
+    db.query(DraftReply)
+    .filter(DraftReply.email_id == e.id)
+    .one_or_none()
+    )
+
+    draft_out = None
+    if d is not None:
+        draft_out = DraftOut(
+            body_text=d.draft_text,
+            model_version=getattr(d, "model_version", None),
+        )
+        
     return EmailDetailOut(
         id=e.id,
         provider=e.provider,
@@ -104,7 +120,9 @@ def get_email(email_id: str, db: Session = Depends(get_db)):
         body_text=e.body_text,
         received_at=e.received_at,
         status=e.status,
+        processing_error=e.processing_error,
         analysis=analysis_out,
+        draft=draft_out,
     )
 
 @router.post("/{email_id}/reprocess")
